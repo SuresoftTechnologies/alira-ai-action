@@ -1,0 +1,54 @@
+name: Alira Core Actions
+description: >
+  Composite Action to set up Alira Core environment up to just before running tests,
+  excluding any caching steps.
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout alira-ai
+      uses: actions/checkout@v4
+      with:
+        repository: SuresoftTechnologies/alira-ai
+        ref: main
+        token: ${{ github.token }}
+        path: target
+
+    - name: Start Devcontainer
+      uses: devcontainers/ci@v0.2
+      with:
+        installCmd: install-cli
+        runCmd: up --workspace-folder target
+
+    - name: Start Core Code Service
+      working-directory: target
+      run: poe core-server-codes-up
+
+    - name: Wait for port 8080
+      working-directory: target
+      run: |
+        echo "Waiting up to 60s for port 8080 to be ready…"
+        for i in $(seq 1 30); do
+          # 컨테이너 내부가 아닌, 호스트에서 포트 확인
+          if nc -z localhost 8080; then
+            echo "✔ Port 8080 is now reachable"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "❌ Port 8080 did not open in time"
+        exit 1
+
+    - name: Checkout repo for diff
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: actions/checkout@v4
+      with:
+        token: ${{ github.token }}
+        path: pr_repo
+
+    - name: Show PR diff
+      if: ${{ github.event_name == 'pull_request' }}
+      working-directory: pr_repo
+      run: |
+        git fetch origin ${{ github.event.pull_request.base.ref }}
+        echo "📝 Diff for PR #${{ github.event.pull_request.number }}:"
+        git diff origin/${{ github.event.pull_request.base.ref }} HEAD || true
