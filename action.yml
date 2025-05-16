@@ -4,6 +4,9 @@ description: >
   an issue with AI analysis results.
 
 inputs:
+  github_token:
+    description: 'GitHub token for authentication (e.g. ${{ secrets.GITHUB_TOKEN }})'
+    required: true
   cleanup:
     description: 'Whether to cleanup pr_repo at the end (true/false)'
     required: false
@@ -13,15 +16,15 @@ runs:
   using: composite
   steps:
     # 0. 항상 pr_repo 먼저 삭제 (self-hosted 환경 필수)
-    - name: Cleanup pr_repo (always, before start)
+    - name: Cleanup pr_repo (always)
       run: rm -rf ${{ github.workspace }}/pr_repo
       shell: bash
 
-    # 1. Checkout (항상 workspace 하위에)
+    # 1. Checkout (workspace 하위에)
     - name: Checkout repo
       uses: actions/checkout@v4
       with:
-        token: ${{ github.token }}
+        token: ${{ inputs.github_token }}
         path: pr_repo
         fetch-depth: 0
 
@@ -45,7 +48,7 @@ runs:
     # 4. Run Agent (AI Analysis) and save output
     - name: Run Agent (AI Analysis) and save output
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.github_token }}
       run: |
         uv run --directory /home/sure/alira-ai --package core core/examples/action.py \
           --patch-path /tmp/pr.patch \
@@ -57,7 +60,7 @@ runs:
     - name: Create GitHub Issue
       if: always()
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.github_token }}
       run: |
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           TITLE="AI Analysis for PR #${{ github.event.pull_request.number }}"
