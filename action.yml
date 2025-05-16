@@ -5,13 +5,8 @@ description: >
 runs:
   using: 'composite'
   steps:
-    - name: Checkout alira-ai
-      uses: actions/checkout@v4
-      with:
-        repository: SuresoftTechnologies/alira-ai
-        ref: main
-        token: ${{ github.token }}
-        path: target
+    - name: Clone alira-ai via SSH
+      run: git clone git@github.com:SuresoftTechnologies/alira-ai.git target
 
     - name: Start Devcontainer
       uses: devcontainers/ci@v0.2
