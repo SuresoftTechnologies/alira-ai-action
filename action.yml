@@ -9,7 +9,7 @@ runs:
     - name: Ensure SSH key is loaded
       run: |
         eval "$(ssh-agent -s)"
-        ssh-add ~/.ssh/id_rsa
+        ssh-add /home/sure/.ssh/id_rsa
       shell: bash
 
     - name: Clone alira-ai via SSH
