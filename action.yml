@@ -47,6 +47,7 @@ runs:
         uv run --directory /home/sure/alira-ai --package core core/examples/action.py \
           --patch-path /tmp/pr.patch \
           --project-root "${{ github.workspace }}/pr_repo"
+          --output-path "${{ github.workspace }}/pr_repo/ai_analysis.md"
       shell: bash
 
     # 5. Cleanup (optional)
