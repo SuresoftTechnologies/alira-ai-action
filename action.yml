@@ -21,6 +21,7 @@ runs:
       with:
         token: ${{ github.token }}
         path: pr_repo
+        fetch-depth: 0
 
     - name: Show PR diff
       if: ${{ github.event_name == 'pull_request' }}
