@@ -2,9 +2,20 @@ name: Alira Core Actions
 description: >
   Composite Action to set up Alira Core environment up to just before running tests,
   excluding any caching steps.
+
+inputs:
+  ssh-private-key:
+    description: 'SSH private key for cloning the private alira-ai repo'
+    required: true
+
 runs:
-  using: 'composite'
+  using: composite
   steps:
+    - name: Load SSH key
+      uses: webfactory/ssh-agent@v0.8.1
+      with:
+        ssh-private-key: ${{ inputs.ssh-private-key }}
+
     - name: Clone alira-ai via SSH
       run: git clone git@github.com:SuresoftTechnologies/alira-ai.git target
       shell: bash
@@ -25,7 +36,6 @@ runs:
       run: |
         echo "Waiting up to 60s for port 8080 to be ready…"
         for i in $(seq 1 30); do
-          # 컨테이너 내부가 아닌, 호스트에서 포트 확인
           if nc -z localhost 8080; then
             echo "✔ Port 8080 is now reachable"
             exit 0
