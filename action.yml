@@ -20,32 +20,6 @@ runs:
       run: git clone git@github.com:SuresoftTechnologies/alira-ai.git target
       shell: bash
 
-    - name: Build & Run Dev Container
-      uses: devcontainers/ci@v0.3
-      with:
-        subFolder: target
-        runCmd: up
-
-    - name: Start Core Code Service
-      working-directory: target
-      run: poe core-server-codes-up
-      shell: bash
-
-    - name: Wait for port 8080
-      working-directory: target
-      run: |
-        echo "Waiting up to 60s for port 8080 to be ready…"
-        for i in $(seq 1 30); do
-          if nc -z localhost 8080; then
-            echo "✔ Port 8080 is now reachable"
-            exit 0
-          fi
-          sleep 2
-        done
-        echo "❌ Port 8080 did not open in time"
-        exit 1
-      shell: bash
-
     - name: Checkout repo for diff
       if: ${{ github.event_name == 'pull_request' }}
       uses: actions/checkout@v4
