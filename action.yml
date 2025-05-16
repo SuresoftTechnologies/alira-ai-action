@@ -6,12 +6,6 @@ description: >
 runs:
   using: composite
   steps:
-    - name: Ensure SSH key is loaded
-      run: |
-        eval "$(ssh-agent -s)"
-        ssh-add /home/sure/.ssh/id_rsa
-      shell: bash
-
     - name: Clone alira-ai via SSH
       run: git clone git@github.com:SuresoftTechnologies/alira-ai.git target
       shell: bash
