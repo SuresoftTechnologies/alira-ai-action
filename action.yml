@@ -11,11 +11,12 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Cleanup pr_repo (optional)
+    # 0. 항상 pr_repo 먼저 삭제 (self-hosted 환경 필수)
+    - name: Cleanup pr_repo (always, before start)
       run: rm -rf pr_repo
       shell: bash
 
-    # Checkout for both push and PR events
+    # 1. Checkout
     - name: Checkout repo
       uses: actions/checkout@v4
       with:
@@ -23,23 +24,29 @@ runs:
         path: pr_repo
         fetch-depth: 0
 
-    - name: Show PR diff
+    # 2. Generate patch file (for PR)
+    - name: Generate patch file (for PR)
       if: ${{ github.event_name == 'pull_request' }}
       working-directory: pr_repo
       run: |
         git fetch origin ${{ github.event.pull_request.base.ref }}
-        echo "📝 Diff for PR #${{ github.event.pull_request.number }}:"
-        git diff origin/${{ github.event.pull_request.base.ref }} HEAD || true
-      shell: bash
+        git diff origin/${{ github.event.pull_request.base.ref }} HEAD > /tmp/pr.patch
 
-    - name: Show full push diff (multi-commit)
+    # 3. Generate patch file (for push)
+    - name: Generate patch file (for push)
       if: ${{ github.event_name == 'push' }}
       working-directory: pr_repo
       run: |
-        echo "📝 Diff for all commits in this push (before..after):"
-        git diff ${{ github.event.before }} ${{ github.event.after }} || true
-      shell: bash
+        git diff ${{ github.event.before }} ${{ github.event.after }} > /tmp/pr.patch
 
+    # 4. Run Agent (AI Analysis)
+    - name: Run Agent (AI Analysis)
+      run: |
+        uv run --directory /home/sure/alira-ai --package core examples/action.py \
+          --patch-path /tmp/pr.patch \
+          --project-root /home/sure/alira-ai/pr_repo
+
+    # 5. 필요 시 후속 cleanup
     - name: Cleanup pr_repo (if enabled)
       if: ${{ inputs.cleanup == 'true' }}
       run: rm -rf pr_repo
