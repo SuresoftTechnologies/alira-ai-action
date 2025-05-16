@@ -1,17 +1,22 @@
 name: Alira Core Actions
 description: >
-  Composite Action to set up Alira Core environment up to just before running tests,
-  excluding any caching steps.
+  Composite Action to set up Alira Core environment...
+
+inputs:
+  cleanup:
+    description: 'Whether to cleanup pr_repo at the end (true/false)'
+    required: false
+    default: 'false'
 
 runs:
   using: composite
   steps:
-    - name: Clone alira-ai via SSH
-      run: git clone git@github.com:SuresoftTechnologies/alira-ai.git target
+    - name: Cleanup pr_repo (optional)
+      run: rm -rf pr_repo
       shell: bash
 
-    - name: Checkout repo for diff
-      if: ${{ github.event_name == 'pull_request' }}
+    # Checkout for both push and PR events
+    - name: Checkout repo
       uses: actions/checkout@v4
       with:
         token: ${{ github.token }}
@@ -24,4 +29,17 @@ runs:
         git fetch origin ${{ github.event.pull_request.base.ref }}
         echo "📝 Diff for PR #${{ github.event.pull_request.number }}:"
         git diff origin/${{ github.event.pull_request.base.ref }} HEAD || true
+      shell: bash
+
+    - name: Show full push diff (multi-commit)
+      if: ${{ github.event_name == 'push' }}
+      working-directory: pr_repo
+      run: |
+        echo "📝 Diff for all commits in this push (before..after):"
+        git diff ${{ github.event.before }} ${{ github.event.after }} || true
+      shell: bash
+
+    - name: Cleanup pr_repo (if enabled)
+      if: ${{ inputs.cleanup == 'true' }}
+      run: rm -rf pr_repo
       shell: bash
