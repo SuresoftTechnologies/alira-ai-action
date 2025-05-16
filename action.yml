@@ -31,6 +31,7 @@ runs:
       run: |
         git fetch origin ${{ github.event.pull_request.base.ref }}
         git diff origin/${{ github.event.pull_request.base.ref }} HEAD > /tmp/pr.patch
+      shell: bash
 
     # 3. Generate patch file (for push)
     - name: Generate patch file (for push)
@@ -38,6 +39,7 @@ runs:
       working-directory: pr_repo
       run: |
         git diff ${{ github.event.before }} ${{ github.event.after }} > /tmp/pr.patch
+      shell: bash
 
     # 4. Run Agent (AI Analysis)
     - name: Run Agent (AI Analysis)
@@ -45,8 +47,9 @@ runs:
         uv run --directory /home/sure/alira-ai --package core examples/action.py \
           --patch-path /tmp/pr.patch \
           --project-root /home/sure/alira-ai/pr_repo
+      shell: bash
 
-    # 5. 필요 시 후속 cleanup
+    # 5. Cleanup (optional)
     - name: Cleanup pr_repo (if enabled)
       if: ${{ inputs.cleanup == 'true' }}
       run: rm -rf pr_repo
