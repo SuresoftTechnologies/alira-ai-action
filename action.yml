@@ -20,11 +20,11 @@ runs:
       run: git clone git@github.com:SuresoftTechnologies/alira-ai.git target
       shell: bash
 
-    - name: Start Devcontainer
-      uses: devcontainers/ci@v0.2
+    - name: Build & Run Dev Container
+      uses: devcontainers/ci@v0.3
       with:
-        installCmd: install-cli
-        runCmd: up --workspace-folder target
+        subFolder: target
+        runCmd: up
 
     - name: Start Core Code Service
       working-directory: target
