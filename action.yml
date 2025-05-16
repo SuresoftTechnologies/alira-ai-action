@@ -16,7 +16,7 @@ runs:
       run: rm -rf ${{ github.workspace }}/pr_repo
       shell: bash
 
-    # 1. Checkout
+    # 1. Checkout (항상 workspace 하위에)
     - name: Checkout repo
       uses: actions/checkout@v4
       with:
@@ -30,7 +30,7 @@ runs:
       working-directory: ${{ github.workspace }}/pr_repo
       run: |
         git fetch origin ${{ github.event.pull_request.base.ref }}
-        git diff origin/${{ github.event.pull_request.base.ref }} HEAD > ${{ github.workspace }}/pr.patch
+        git diff origin/${{ github.event.pull_request.base.ref }} HEAD > /tmp/pr.patch
       shell: bash
 
     # 3. Generate patch file (for push)
@@ -38,15 +38,15 @@ runs:
       if: ${{ github.event_name == 'push' }}
       working-directory: ${{ github.workspace }}/pr_repo
       run: |
-        git diff ${{ github.event.before }} ${{ github.event.after }} > ${{ github.workspace }}/pr.patch
+        git diff ${{ github.event.before }} ${{ github.event.after }} > /tmp/pr.patch
       shell: bash
 
     # 4. Run Agent (AI Analysis)
     - name: Run Agent (AI Analysis)
       run: |
-        uv run --directory ${{ github.workspace }} --package core core/examples/action.py \
-          --patch-path ${{ github.workspace }}/pr.patch \
-          --project-root ${{ github.workspace }}/pr_repo
+        uv run --directory /home/sure/alira-ai --package core core/examples/action.py \
+          --patch-path /tmp/pr.patch \
+          --project-root "${{ github.workspace }}/pr_repo"
       shell: bash
 
     # 5. Cleanup (optional)
