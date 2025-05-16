@@ -1,6 +1,7 @@
 name: Alira Core Actions
 description: >
-  Composite Action to set up Alira Core environment...
+  Composite Action to set up Alira Core environment and automatically open
+  an issue with AI analysis results.
 
 inputs:
   cleanup:
@@ -41,16 +42,36 @@ runs:
         git diff ${{ github.event.before }} ${{ github.event.after }} > /tmp/pr.patch
       shell: bash
 
-    # 4. Run Agent (AI Analysis)
-    - name: Run Agent (AI Analysis)
+    # 4. Run Agent (AI Analysis) and save output
+    - name: Run Agent (AI Analysis) and save output
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         uv run --directory /home/sure/alira-ai --package core core/examples/action.py \
           --patch-path /tmp/pr.patch \
-          --project-root "${{ github.workspace }}/pr_repo"
-          --output-path "${{ github.workspace }}/pr_repo/ai_analysis.md"
+          --project-root "${{ github.workspace }}/pr_repo" \
+          --output-path /tmp/analysis.md
       shell: bash
 
-    # 5. Cleanup (optional)
+    # 5. Create GitHub Issue with AI 분석 결과
+    - name: Create GitHub Issue
+      if: always()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          TITLE="AI Analysis for PR #${{ github.event.pull_request.number }}"
+        else
+          TITLE="AI Analysis for commit ${{ github.sha }}"
+        fi
+
+        gh issue create \
+          --title "$TITLE" \
+          --body-file /tmp/analysis.md \
+          --repo "${{ github.repository }}"
+      shell: bash
+
+    # 6. Cleanup (optional)
     - name: Cleanup pr_repo (if enabled)
       if: ${{ inputs.cleanup == 'true' }}
       run: rm -rf ${{ github.workspace }}/pr_repo
