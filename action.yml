@@ -7,6 +7,7 @@ runs:
   steps:
     - name: Clone alira-ai via SSH
       run: git clone git@github.com:SuresoftTechnologies/alira-ai.git target
+      shell: bash
 
     - name: Start Devcontainer
       uses: devcontainers/ci@v0.2
