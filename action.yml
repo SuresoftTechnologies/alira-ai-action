@@ -44,7 +44,7 @@ runs:
     # 4. Run Agent (AI Analysis)
     - name: Run Agent (AI Analysis)
       run: |
-        uv run --directory /home/sure/alira-ai --package core examples/action.py \
+        uv run --directory /home/sure/alira-ai --package core core/examples/action.py \
           --patch-path /tmp/pr.patch \
           --project-root /home/sure/alira-ai/pr_repo
       shell: bash
