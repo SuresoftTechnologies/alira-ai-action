@@ -1,0 +1,84 @@
+name: Alira Core Actions
+description: >
+  Composite Action that checks out code, generates a diff patch,
+  runs an AI analysis agent, and opens a GitHub Issue with the
+  Markdown-formatted results.
+
+inputs:
+  github_token:
+    description: 'GitHub token for authentication'
+    required: true
+
+  cleanup:
+    description: 'Whether to delete pr_repo after run (true/false)'
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    # 0. (항상) 이전에 있던 pr_repo 지우기
+    - name: Cleanup pr_repo
+      run: rm -rf ${{ github.workspace }}/pr_repo
+      shell: bash
+
+    # 1. Checkout
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ inputs.github_token }}
+        path: pr_repo
+        fetch-depth: 0
+
+    # 2. PR 이벤트면 base 브랜치 대비 diff 생성
+    - name: Generate patch file for PR
+      if: ${{ github.event_name == 'pull_request' }}
+      run: |
+        cd ${{ github.workspace }}/pr_repo
+        git fetch origin ${{ github.event.pull_request.base.ref }}
+        git diff origin/${{ github.event.pull_request.base.ref }} HEAD > /tmp/pr.patch
+      shell: bash
+
+    # 3. Push 이벤트면 before→after diff 생성
+    - name: Generate patch file for push
+      if: ${{ github.event_name == 'push' }}
+      run: |
+        cd ${{ github.workspace }}/pr_repo
+        git diff ${{ github.event.before }} ${{ github.event.after }} > /tmp/pr.patch
+      shell: bash
+
+    # 4. AI 에이전트 실행 및 결과 Markdown으로 저장
+    - name: Run AI Analysis and save output
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        uv run --directory /home/sure/alira-ai \
+           --package core core/examples/action.py \
+           --patch-path /tmp/pr.patch \
+           --project-root "${{ github.workspace }}/pr_repo" \
+           --output-path /tmp/analysis.md
+      shell: bash
+
+    # 5. GitHub Issue 생성
+    - name: Create GitHub Issue
+      if: always()
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          TITLE="AI Analysis for PR #${{ github.event.pull_request.number }}"
+        else
+          TITLE="AI Analysis for commit ${{ github.sha }}"
+        fi
+
+        gh issue create \
+          --title "$TITLE" \
+          --body-file /tmp/analysis.md \
+          --repo "${{ github.repository }}"
+      shell: bash
+
+    # 6. (선택) pr_repo 삭제
+    - name: Cleanup pr_repo (optional)
+      if: ${{ inputs.cleanup == 'true' }}
+      run: rm -rf ${{ github.workspace }}/pr_repo
+      shell: bash
