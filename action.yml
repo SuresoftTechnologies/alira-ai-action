@@ -68,23 +68,28 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github_token }}
       run: |
-        args="--patch-path /tmp/pr.patch \
-        --project-root \"${{ github.workspace }}/pr_repo\" \
-        --output-path /tmp/analysis.md \
-        --project-name \"${{ inputs.project_name }}\""
+        set -euo pipefail
 
-        # 시스템 프롬프트 파일이 지정된 경우
+        # 1) args 배열 생성 (따옴표는 요소를 감쌀 때만!)
+        args=(
+          --patch-path /tmp/pr.patch
+          --project-root "${{ github.workspace }}/pr_repo"
+          --output-path /tmp/analysis.md
+          --project-name "${{ inputs.project_name }}"
+        )
+
+        # 2) optional prompts
         if [ -n "${{ inputs.system_prompt_path }}" ]; then
-          args="$args --system-prompt-path \"${{ github.workspace }}/pr_repo/${{ inputs.system_prompt_path }}\""
+          args+=(--system-prompt-path "${{ github.workspace }}/pr_repo/${{ inputs.system_prompt_path }}")
         fi
-
-        # 사용자 프롬프트 파일이 지정된 경우
         if [ -n "${{ inputs.user_prompt_path }}" ]; then
-          args="$args --user-prompt-path \"${{ github.workspace }}/pr_repo/${{ inputs.user_prompt_path }}\""
+          args+=(--user-prompt-path "${{ github.workspace }}/pr_repo/${{ inputs.user_prompt_path }}")
         fi
 
+        # 3) 실행 (배열 언패킹)
         uv run --directory /home/sure/alira-ai \
-          --package core core/examples/action.py $args
+          --package core core/examples/action.py "${args[@]}"
+
 
     # 5. GitHub Issue 생성
     - name: Create GitHub Issue
