@@ -44,6 +44,7 @@ runs:
         token: ${{ inputs.github_token }}
         path: pr_repo
         fetch-depth: 0
+        ref: ${{ github.event.pull_request.head.sha }}
 
     # 2. PR 이벤트면 base 브랜치 대비 diff 생성
     - name: Generate patch file for PR
@@ -51,7 +52,7 @@ runs:
       run: |
         cd ${{ github.workspace }}/pr_repo
         git fetch origin ${{ github.event.pull_request.base.ref }}
-        git diff origin/${{ github.event.pull_request.base.ref }} HEAD > /tmp/pr.patch
+        git diff origin/${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.sha }} > /tmp/pr.patch
       shell: bash
 
     # 3. Push 이벤트면 before→after diff 생성
