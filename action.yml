@@ -69,14 +69,16 @@ runs:
         GH_TOKEN: ${{ inputs.github_token }}
       run: |
         args="--patch-path /tmp/pr.patch \
---project-root \"${{ github.workspace }}/pr_repo\" \
---output-path /tmp/analysis.md \
---project-name \"${{ inputs.project_name }}\""
+        --project-root \"${{ github.workspace }}/pr_repo\" \
+        --output-path /tmp/analysis.md \
+        --project-name \"${{ inputs.project_name }}\""
 
-        # system_prompt_path가 비어있지 않으면 pr_repo prefix를 붙임
+        # 시스템 프롬프트 파일이 지정된 경우
         if [ -n "${{ inputs.system_prompt_path }}" ]; then
           args="$args --system-prompt-path \"${{ github.workspace }}/pr_repo/${{ inputs.system_prompt_path }}\""
         fi
+
+        # 사용자 프롬프트 파일이 지정된 경우
         if [ -n "${{ inputs.user_prompt_path }}" ]; then
           args="$args --user-prompt-path \"${{ github.workspace }}/pr_repo/${{ inputs.user_prompt_path }}\""
         fi
