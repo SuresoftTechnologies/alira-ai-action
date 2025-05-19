@@ -15,12 +15,12 @@ inputs:
     default: 'false'
 
   system_prompt_path:
-    description: '시스템 프롬프트 파일 경로 (없으면 기본값 사용)'
+    description: '시스템 프롬프트 파일 경로 (유저 레포 기준, 없으면 기본값 사용)'
     required: false
     default: ''
 
   user_prompt_path:
-    description: '사용자 프롬프트 파일 경로 (없으면 기본값 사용)'
+    description: '사용자 프롬프트 파일 경로 (유저 레포 기준, 없으면 기본값 사용)'
     required: false
     default: ''
 
@@ -68,20 +68,17 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github_token }}
       run: |
-        # 기본 args
         args="--patch-path /tmp/pr.patch \
 --project-root \"${{ github.workspace }}/pr_repo\" \
 --output-path /tmp/analysis.md \
 --project-name \"${{ inputs.project_name }}\""
 
-        # 시스템 프롬프트 파일이 지정된 경우
+        # system_prompt_path가 비어있지 않으면 pr_repo prefix를 붙임
         if [ -n "${{ inputs.system_prompt_path }}" ]; then
-          args="$args --system-prompt-path \"${{ inputs.system_prompt_path }}\""
+          args="$args --system-prompt-path \"${{ github.workspace }}/pr_repo/${{ inputs.system_prompt_path }}\""
         fi
-
-        # 사용자 프롬프트 파일이 지정된 경우
         if [ -n "${{ inputs.user_prompt_path }}" ]; then
-          args="$args --user-prompt-path \"${{ inputs.user_prompt_path }}\""
+          args="$args --user-prompt-path \"${{ github.workspace }}/pr_repo/${{ inputs.user_prompt_path }}\""
         fi
 
         uv run --directory /home/sure/alira-ai \
