@@ -14,6 +14,21 @@ inputs:
     required: false
     default: 'false'
 
+  system_prompt_path:
+    description: '시스템 프롬프트 파일 경로 (없으면 기본값 사용)'
+    required: false
+    default: ''
+
+  user_prompt_path:
+    description: '사용자 프롬프트 파일 경로 (없으면 기본값 사용)'
+    required: false
+    default: ''
+
+  project_name:
+    description: '프로젝트 이름'
+    required: false
+    default: 'pr_project'
+
 runs:
   using: composite
   steps:
@@ -49,33 +64,53 @@ runs:
 
     # 4. AI 에이전트 실행 및 결과 Markdown으로 저장
     - name: Run AI Analysis and save output
+      shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
       run: |
+        # 기본 args
+        args="--patch-path /tmp/pr.patch \
+--project-root \"${{ github.workspace }}/pr_repo\" \
+--output-path /tmp/analysis.md \
+--project-name \"${{ inputs.project_name }}\""
+
+        # 시스템 프롬프트 파일이 지정된 경우
+        if [ -n "${{ inputs.system_prompt_path }}" ]; then
+          args="$args --system-prompt-path \"${{ inputs.system_prompt_path }}\""
+        fi
+
+        # 사용자 프롬프트 파일이 지정된 경우
+        if [ -n "${{ inputs.user_prompt_path }}" ]; then
+          args="$args --user-prompt-path \"${{ inputs.user_prompt_path }}\""
+        fi
+
         uv run --directory /home/sure/alira-ai \
-           --package core core/examples/action.py \
-           --patch-path /tmp/pr.patch \
-           --project-root "${{ github.workspace }}/pr_repo" \
-           --output-path /tmp/analysis.md
-      shell: bash
+          --package core core/examples/action.py $args
 
     # 5. GitHub Issue 생성
     - name: Create GitHub Issue
-      if: always()
+      if: ${{ always() }}
+      shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
-          TITLE="AI Analysis for PR #${{ github.event.pull_request.number }}"
+        set -euo pipefail
+
+        SHORT_SHA=${GITHUB_SHA:0:7}
+
+        # pull_request 인지 push 인지 판단
+        if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+          TITLE="AI Analysis for PR #${PR_NUMBER}"
         else
-          TITLE="AI Analysis for commit ${{ github.sha }}"
+          TITLE="AI Analysis for commit ${SHORT_SHA}"
         fi
 
+        # Issue 생성
         gh issue create \
           --title "$TITLE" \
           --body-file /tmp/analysis.md \
-          --repo "${{ github.repository }}"
-      shell: bash
+          --repo "$GITHUB_REPOSITORY"
 
     # 6. (선택) pr_repo 삭제
     - name: Cleanup pr_repo (optional)
