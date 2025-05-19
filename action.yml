@@ -51,8 +51,17 @@ runs:
       if: ${{ github.event_name == 'pull_request' }}
       run: |
         cd ${{ github.workspace }}/pr_repo
+        # base·head ref 모두 fetch
         git fetch origin ${{ github.event.pull_request.base.ref }}
-        git diff origin/${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.sha }} > /tmp/pr.patch
+        git fetch origin ${{ github.event.pull_request.head.ref }}
+        # 공통 조상 계산
+        BASE_SHA=$(git merge-base \
+          origin/${{ github.event.pull_request.base.ref }} \
+          origin/${{ github.event.pull_request.head.ref }})
+        # merge-base 기준으로 diff 생성
+        git diff $BASE_SHA \
+          origin/${{ github.event.pull_request.head.ref }} \
+          > /tmp/pr.patch
       shell: bash
 
     # 3. Push 이벤트면 before→after diff 생성
